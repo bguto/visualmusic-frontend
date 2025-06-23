@@ -4,13 +4,13 @@ const BACKEND_URL = "https://visualmusic-backend.onrender.com";
 // Intentar enviar el enlace a la API con reintentos múltiples
 async function enviarYoutubeLink(url, intento = 1) {
     try {
-        const resp = await fetch(\`\${BACKEND_URL}/api/process\`, {
+        const resp = await fetch(`${BACKEND_URL}/api/process`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ youtube_url: url })
         });
 
-        if (!resp.ok) throw new Error(\`HTTP error \${resp.status}\`);
+        if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
 
         const data = await resp.json();
         if (data.error) throw new Error(data.error);
@@ -18,7 +18,7 @@ async function enviarYoutubeLink(url, intento = 1) {
         return data;
     } catch (err) {
         if (intento < 5) {
-            document.getElementById('error').textContent = \`Intento \${intento}/5: esperando al backend...\`;
+            document.getElementById('error').textContent = `Intento ${intento}/5: esperando al backend...`;
             await new Promise(resolve => setTimeout(resolve, 5000));
             return await enviarYoutubeLink(url, intento + 1);
         } else {
