@@ -1,8 +1,8 @@
-// URL del backend
+// URL del backend (sin barra final)
 const BACKEND_URL = "https://visualmusic-backend.onrender.com";
 
-// Función para enviar el enlace a la API con reintento
-async function enviarYoutubeLink(url, reintento = false) {
+// Intentar enviar el enlace a la API con reintentos múltiples
+async function enviarYoutubeLink(url, intento = 1) {
     try {
         const resp = await fetch(\`\${BACKEND_URL}/api/process\`, {
             method: 'POST',
@@ -17,10 +17,10 @@ async function enviarYoutubeLink(url, reintento = false) {
 
         return data;
     } catch (err) {
-        if (!reintento) {
-            document.getElementById('error').textContent = 'Backend despertando... intentando de nuevo';
+        if (intento < 5) {
+            document.getElementById('error').textContent = \`Intento \${intento}/5: esperando al backend...\`;
             await new Promise(resolve => setTimeout(resolve, 5000));
-            return await enviarYoutubeLink(url, true);
+            return await enviarYoutubeLink(url, intento + 1);
         } else {
             throw err;
         }
@@ -35,15 +35,14 @@ document.getElementById('generate-btn').onclick = async function () {
         return;
     }
 
-    document.getElementById('error').textContent = 'Procesando, esto puede tardar...';
-
+    document.getElementById('error').textContent = 'Procesando...';
     try {
         const data = await enviarYoutubeLink(youtubeUrl);
         window.notesData = data;
         if (window.redrawVisualization) window.redrawVisualization();
         document.getElementById('error').textContent = '';
     } catch (e) {
-        document.getElementById('error').textContent = 'Error: ' + e.message;
+        document.getElementById('error').textContent = 'Error final: ' + e.message;
     }
 };
 
@@ -69,8 +68,8 @@ let sketch = function (p) {
         if (!window.notesData) return;
 
         t = p.millis() / 1000.0;
-
         const offset = t * 100;
+
         for (let note of window.notesData) {
             if (t < note.start || t > note.end) continue;
 
