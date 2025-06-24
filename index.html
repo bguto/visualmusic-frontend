@@ -4,19 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>The Wine House Music Visualizer</title>
-
-  <!-- Si tienes la fuente Bristol en un archivo local, inclúyela así:
-  <style>
-    @font-face {
-      font-family: 'Bristol';
-      src: url('fonts/Bristol.woff2') format('woff2'),
-           url('fonts/Bristol.woff') format('woff');
-      font-weight: normal;
-      font-style: normal;
-    }
-  </style>
-  -->
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -29,22 +16,16 @@
       min-height: 100vh;
       padding: 2rem 1rem;
     }
-
-    /* Logo centrado */
     #logo {
       width: 120px;
-      height: auto;
       margin-bottom: 1rem;
     }
-
-    /* Título con Bristol */
     h1 {
       font-family: 'Bristol', sans-serif;
       font-size: 3rem;
       color: #a31414;
       margin-bottom: 2rem;
     }
-
     .upload-card {
       display: flex;
       align-items: center;
@@ -54,23 +35,18 @@
       border-radius: 0.75rem;
       margin-bottom: 1.5rem;
     }
-    .upload-card label {
-      font-size: 1.1rem;
-      color: #333;
-    }
+    .upload-card label { font-size: 1.1rem; color: #333; }
     .upload-card input[type=file] { display: none; }
     .upload-card button {
       background: #a31414;
-      border: none;
       color: #fff;
+      border: none;
       padding: 0.6rem 1.2rem;
       border-radius: 0.5rem;
       cursor: pointer;
       transition: background 0.3s;
     }
-    .upload-card button:hover {
-      background: #8c1212;
-    }
+    .upload-card button:hover { background: #8c1212; }
     .upload-card .file-name {
       font-size: 1rem;
       color: #555;
@@ -79,7 +55,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
     .btn-generate {
       background: #a31414;
       color: #fff;
@@ -96,7 +71,6 @@
       transform: translateY(-3px);
       box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     }
-
     canvas {
       width: 90vw;
       height: 60vh;
@@ -128,17 +102,7 @@
   <!-- Canvas para la visualización -->
   <canvas id="canvas"></canvas>
 
-  <!-- Scripts -->
+  <!-- Script único -->
   <script src="script.js"></script>
-  <script>
-    // Lógica para mostrar el nombre de archivo
-    const fileInput = document.getElementById('file-upload');
-    const fileButton = document.getElementById('btn-select');
-    const fileNameEl = document.getElementById('file-name');
-    fileButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => {
-      fileNameEl.textContent = fileInput.files[0]?.name || 'Ningún archivo seleccionado';
-    });
-  </script>
 </body>
 </html>
