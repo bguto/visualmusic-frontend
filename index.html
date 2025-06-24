@@ -1,108 +1,45 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>The Wine House Music Visualizer</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background-color: #f8f7f2;
+      background: #f8f7f2;
       color: #000;
       font-family: 'Roboto', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
+      text-align: center;
       padding: 2rem 1rem;
     }
-    #logo {
-      width: 120px;
-      margin-bottom: 1rem;
+    #logo { width:120px; margin:0 auto 1rem; display:block; }
+    h1 { font-family:'Bristol',sans-serif; color:#a31414; font-size:3rem; margin-bottom:2rem; }
+    .upload { margin-bottom:1.5rem; }
+    .upload button {
+      background:#a31414; color:#fff; border:none; padding:0.6rem 1.2rem; border-radius:.5rem;
+      cursor:pointer; margin-left:.5rem;
     }
-    h1 {
-      font-family: 'Bristol', sans-serif;
-      font-size: 3rem;
-      color: #a31414;
-      margin-bottom: 2rem;
+    .upload span { margin-left:1rem; color:#555; }
+    .btn-gen {
+      background:#a31414;color:#fff;border:none;padding:.8rem 2rem;border-radius:.5rem;
+      cursor:pointer;margin-bottom:2rem; transition:.2s;
     }
-    .upload-card {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      background: rgba(163,20,20,0.1);
-      padding: 1rem 1.5rem;
-      border-radius: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-    .upload-card label { font-size: 1.1rem; color: #333; }
-    .upload-card input[type=file] { display: none; }
-    .upload-card button {
-      background: #a31414;
-      color: #fff;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    .upload-card button:hover { background: #8c1212; }
-    .upload-card .file-name {
-      font-size: 1rem;
-      color: #555;
-      max-width: 200px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .btn-generate {
-      background: #a31414;
-      color: #fff;
-      border: none;
-      padding: 0.8rem 2rem;
-      font-size: 1.1rem;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      transition: transform 0.2s, box-shadow 0.2s;
-      margin-bottom: 2rem;
-    }
-    .btn-generate:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    }
+    .btn-gen:hover { transform:translateY(-3px); }
     canvas {
-      width: 90vw;
-      height: 60vh;
-      border-radius: 0.75rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      background: #fff;
+      width:90vw; height:60vh; background:#fff; border-radius:.75rem;
+      box-shadow:0 4px 12px rgba(0,0,0,.1);
     }
   </style>
 </head>
 <body>
-
-  <!-- Logo centrado -->
-  <img id="logo" src="./logo.png" alt="The Wine House Logo">
-
-  <!-- Título estilizado -->
+  <img id="logo" src="logo.png" alt="Logo">
   <h1>The Wine House Music Visualizer</h1>
-
-  <!-- Tarjeta de subida -->
-  <div class="upload-card">
-    <label for="file-upload">Sube un archivo de audio (.mp3, .wav):</label>
-    <input type="file" id="file-upload" accept="audio/*">
-    <button id="btn-select">Seleccionar archivo</button>
-    <span class="file-name" id="file-name">Ningún archivo seleccionado</span>
+  <div class="upload">
+    <input type="file" id="file" accept="audio/*">
+    <button id="btnSel">Seleccionar archivo</button>
+    <span id="fname">Ningún archivo seleccionado</span>
   </div>
-
-  <!-- Botón Generar -->
-  <button id="generar" class="btn-generate">Generar Visualización</button>
-
-  <!-- Canvas para la visualización -->
+  <button id="btnGen" class="btn-gen">Generar Visualización</button>
   <canvas id="canvas"></canvas>
-
-  <!-- Script único -->
   <script src="script.js"></script>
 </body>
 </html>
