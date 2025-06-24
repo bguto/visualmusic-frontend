@@ -1,100 +1,94 @@
-// URL del backend
 const BACKEND_URL = "https://visualmusic-backend.onrender.com";
 
-// Intentar enviar el enlace a la API con reintentos múltiples
-async function enviarYoutubeLink(url, intento = 1) {
-    try {
-        const resp = await fetch(BACKEND_URL + "/api/process", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ youtube_url: url })
-        });
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-        if (!resp.ok) throw new Error("HTTP error " + resp.status);
+const instrumentoColor = {
+  "drums": "#FF0055",
+  "bass": "#66FF00",
+  "piano": "#00D1FF",
+  "vocals": "#FFD700",
+  "other": "#AAAAAA"
+};
 
-        const data = await resp.json();
-        if (data.error) throw new Error(data.error);
+let notas = [];
+const activeNotas = [];
+let tiempoInicio = null;
 
-        return data;
-    } catch (err) {
-        if (intento < 5) {
-            document.getElementById('error').textContent = "Intento " + intento + "/5: esperando al backend...";
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            return await enviarYoutubeLink(url, intento + 1);
-        } else {
-            throw err;
-        }
-    }
+function pitchToY(pitch) {
+  const rango = [40, 90];
+  const normalized = (pitch - rango[0]) / (rango[1] - rango[0]);
+  return canvas.height - normalized * canvas.height;
 }
 
-document.getElementById('generate-btn').onclick = async function () {
-    const youtubeUrl = document.getElementById('youtube-input').value;
-    document.getElementById('error').textContent = '';
-    if (!youtubeUrl) {
-        document.getElementById('error').textContent = 'Por favor, pega un enlace de YouTube.';
-        return;
+function update() {
+  if (!tiempoInicio) return;
+  const now = performance.now() / 1000 - tiempoInicio;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  notas.forEach(nota => {
+    if (!nota.activa && nota.start <= now) {
+      nota.activa = true;
+      nota.x = Math.random() * canvas.width;
+      nota.y = pitchToY(nota.pitch);
+      nota.size = 10 + Math.random() * 10;
+      activeNotas.push(nota);
+    }
+  });
+
+  for (let i = activeNotas.length - 1; i >= 0; i--) {
+    const nota = activeNotas[i];
+    const duracion = nota.end - nota.start;
+    const progreso = (now - nota.start) / duracion;
+
+    if (progreso > 1) {
+      activeNotas.splice(i, 1);
+      continue;
     }
 
-    document.getElementById('error').textContent = 'Procesando...';
-    try {
-        const data = await enviarYoutubeLink(youtubeUrl);
-        window.notesData = data;
-        if (window.redrawVisualization) window.redrawVisualization();
-        document.getElementById('error').textContent = '';
-    } catch (e) {
-        document.getElementById('error').textContent = 'Error final: ' + e.message;
+    ctx.beginPath();
+    ctx.fillStyle = instrumentoColor[nota.instrument] || "#FFF";
+    ctx.globalAlpha = 1 - progreso;
+    ctx.arc(nota.x, nota.y, nota.size, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  requestAnimationFrame(update);
+}
+
+function iniciarVisualizacion(conNotas) {
+  notas = conNotas.map(n => ({ ...n, activa: false }));
+  tiempoInicio = performance.now() / 1000;
+  update();
+}
+
+document.getElementById("generar").onclick = async () => {
+  const url = document.getElementById("youtube-url").value.trim();
+  if (!url) {
+    alert("Introduce un link de YouTube.");
+    return;
+  }
+
+  document.getElementById("generar").innerText = "Procesando...";
+  try {
+    const resp = await fetch(`${BACKEND_URL}/api/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ youtube_url: url })
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      alert("Error del backend: " + data.error);
+    } else {
+      iniciarVisualizacion(data);
     }
+  } catch (e) {
+    alert("Error al conectar con el backend.");
+  }
+  document.getElementById("generar").innerText = "Generar";
 };
-
-let colors = {
-    "drums": [255, 100, 100],
-    "bass": [100, 255, 150],
-    "other": [150, 150, 255],
-    "unknown": [200, 200, 200]
-};
-
-let sketch = function (p) {
-    let t = 0;
-    p.setup = function () {
-        let canvas = p.createCanvas(900, 400);
-        canvas.parent('visualization');
-        p.noFill();
-        p.frameRate(60);
-        p.noLoop();
-    };
-
-    p.draw = function () {
-        p.background(18, 20, 30, 100);
-        if (!window.notesData) return;
-
-        t = p.millis() / 1000.0;
-        const offset = t * 100;
-
-        for (let note of window.notesData) {
-            if (t < note.start || t > note.end) continue;
-
-            let col = colors[note.instrument] || colors['unknown'];
-            p.stroke(col[0], col[1], col[2], 150);
-            p.strokeWeight(1.5);
-
-            let waveY = p.map(note.pitch, 21, 108, p.height - 100, 100);
-            let amplitude = (note.end - note.start) * 60;
-            let xStart = p.map(note.start, 0, 30, 0, p.width);
-            let xEnd = p.map(note.end, 0, 30, 0, p.width);
-
-            p.beginShape();
-            for (let x = xStart; x <= xEnd; x += 10) {
-                let y = waveY + p.sin(x * 0.05 + offset) * amplitude;
-                p.curveVertex(x, y);
-            }
-            p.endShape();
-        }
-    };
-
-    window.redrawVisualization = () => {
-        p.loop();
-        setTimeout(() => p.noLoop(), 30000);
-    };
-};
-
-new p5(sketch);
