@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://visualmusic-backend.onrender.com";
+const BACKEND_URL = "https://visualmusic-backend-1.onrender.com";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
