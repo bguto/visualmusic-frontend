@@ -1,121 +1,44 @@
-// URL de tu backend en Render
-const BACKEND_URL = "https://visualmusic-backend-1.onrender.com";
+const URL = "https://visualmusic-backend-1.onrender.com/api/upload";
 
-// --- Preparación del canvas ---
-const canvas = document.getElementById("canvas");
-const ctx    = canvas.getContext("2d");
-canvas.width  = window.innerWidth * 0.9;  // Coincide con el 90vw de CSS
-canvas.height = window.innerHeight * 0.6; // Coincide con el 60vh de CSS
+const fileIn = document.getElementById("file"),
+      btnSel = document.getElementById("btnSel"),
+      fname = document.getElementById("fname"),
+      btnGen = document.getElementById("btnGen"),
+      cv = document.getElementById("canvas"),
+      ctx = cv.getContext("2d");
+cv.width=window.innerWidth*0.9; cv.height=window.innerHeight*0.6;
 
-const instrumentoColor = {
-  drums:  "#FF0055",
-  bass:   "#66FF00",
-  piano:  "#00D1FF",
-  vocals: "#FFD700",
-  other:  "#AAAAAA"
-};
+btnSel.onclick = ()=> fileIn.click();
+fileIn.onchange = ()=> fname.textContent = fileIn.files[0]?.name||"Ningún archivo seleccionado";
 
-let notas       = [];
-const activeNotas = [];
-let tiempoInicio = null;
+let notes=[], active=[], t0=null;
+const cols={ drums:"#FF0055", bass:"#66FF00", piano:"#00D1FF", vocals:"#FFD700", other:"#AAAAAA" };
 
-// Mapea pitch (40–90) a posición vertical
-function pitchToY(pitch) {
-  const [min, max] = [40, 90];
-  const norm = (pitch - min) / (max - min);
-  return canvas.height - norm * canvas.height;
-}
-
-// Loop de dibujo
-function update() {
-  if (!tiempoInicio) return;
-  const now = performance.now()/1000 - tiempoInicio;
-  // Fat semi-trasparente
-  ctx.fillStyle = "rgba(248,247,242,0.2)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Activar notas según tiempo de inicio
-  notas.forEach(n => {
-    if (!n.activa && n.start <= now) {
-      n.activa = true;
-      n.x      = Math.random() * canvas.width;
-      n.y      = pitchToY(n.pitch);
-      n.size   = 10 + Math.random()*10;
-      activeNotas.push(n);
-    }
-  });
-
-  // Dibujar notas activas
-  for (let i = activeNotas.length-1; i>=0; i--) {
-    const n = activeNotas[i];
-    const dur = n.end - n.start;
-    const prog = (now - n.start)/dur;
-    if (prog > 1) {
-      activeNotas.splice(i,1);
-      continue;
-    }
-    ctx.beginPath();
-    ctx.fillStyle = instrumentoColor[n.instrument]||"#000";
-    ctx.globalAlpha = 1 - prog;
-    ctx.arc(n.x, n.y, n.size, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+function mapY(p){const m=[40,90];return cv.height-( (p-m[0])/(m[1]-m[0]) * cv.height );}
+function draw(){
+  if(!t0) return;
+  const now=(performance.now()/1e3)-t0;
+  ctx.fillStyle="rgba(248,247,242,0.2)"; ctx.fillRect(0,0,cv.width,cv.height);
+  notes.forEach(n=>{ if(!n.on && n.start<=now){ n.on=true; n.x=Math.random()*cv.width; n.y=mapY(n.pitch); n.s=10+Math.random()*10; active.push(n);} });
+  for(let i=active.length-1;i>=0;i--){
+    const n=active[i], d=n.end-n.start, p=(now-n.start)/d;
+    if(p>1){ active.splice(i,1); continue; }
+    ctx.globalAlpha=1-p;
+    ctx.beginPath(); ctx.fillStyle=cols[n.instrument]||"#000"; ctx.arc(n.x,n.y,n.s,0,2*Math.PI); ctx.fill();
+    ctx.globalAlpha=1;
   }
-
-  requestAnimationFrame(update);
+  requestAnimationFrame(draw);
 }
 
-// Inicia la animación con los datos recibidos
-function iniciarVisualizacion(datos) {
-  notas = datos.map(n => ({ ...n, activa: false }));
-  tiempoInicio = performance.now()/1000;
-  update();
-}
-
-// --- Manejo de fichero y botón ---
-
-const fileInput  = document.getElementById("file-upload");
-const btnSelect  = document.getElementById("btn-select");
-const fileNameEl = document.getElementById("file-name");
-const btnGen     = document.getElementById("generar");
-
-// Abrir dialogo de selección
-btnSelect.addEventListener("click", () => fileInput.click());
-// Mostrar nombre
-fileInput.addEventListener("change", () => {
-  fileNameEl.textContent = fileInput.files[0]?.name || "Ningún archivo seleccionado";
-});
-
-// Al hacer clic en Generar
-btnGen.addEventListener("click", async () => {
-  const f = fileInput.files[0];
-  if (!f) {
-    alert("Por favor selecciona primero un archivo de audio.");
-    return;
-  }
-
-  btnGen.disabled = true;
-  btnGen.textContent = "Procesando...";
-
-  const form = new FormData();
-  form.append("audio", f);
-
+btnGen.onclick = async ()=>{
+  if(!fileIn.files.length){ alert("Selecciona un archivo."); return; }
+  btnGen.disabled=true; btnGen.textContent="Procesando...";
+  const fd=new FormData(); fd.append("audio", fileIn.files[0]);
   try {
-    const resp = await fetch(`${BACKEND_URL}/api/upload`, {
-      method: "POST",
-      body: form
-    });
-    const json = await resp.json();
-    if (!resp.ok) {
-      alert("Error del backend: " + json.error);
-    } else {
-      iniciarVisualizacion(json);
-    }
-  } catch (err) {
-    alert("Error al conectar con el backend.");
-    console.error(err);
-  } finally {
-    btnGen.disabled = false;
-    btnGen.textContent = "Generar Visualización";
-  }
-});
+    const r=await fetch(URL,{method:"POST",body:fd});
+    const j=await r.json();
+    if(!r.ok) alert("Error backend: "+j.error);
+    else { notes=j.map(n=>({...n,on:false})); t0=performance.now()/1e3; draw(); }
+  } catch(e){ alert("No se pudo conectar."); console.error(e); }
+  finally{ btnGen.disabled=false; btnGen.textContent="Generar Visualización"; }
+};
