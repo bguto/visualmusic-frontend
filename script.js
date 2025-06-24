@@ -1,58 +1,63 @@
+// URL de tu backend en Render
 const BACKEND_URL = "https://visualmusic-backend-1.onrender.com";
 
+// --- Preparación del canvas ---
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const ctx    = canvas.getContext("2d");
+canvas.width  = window.innerWidth * 0.9;  // Coincide con el 90vw de CSS
+canvas.height = window.innerHeight * 0.6; // Coincide con el 60vh de CSS
 
 const instrumentoColor = {
-  "drums": "#FF0055",
-  "bass": "#66FF00",
-  "piano": "#00D1FF",
-  "vocals": "#FFD700",
-  "other": "#AAAAAA"
+  drums:  "#FF0055",
+  bass:   "#66FF00",
+  piano:  "#00D1FF",
+  vocals: "#FFD700",
+  other:  "#AAAAAA"
 };
 
-let notas = [];
+let notas       = [];
 const activeNotas = [];
 let tiempoInicio = null;
 
+// Mapea pitch (40–90) a posición vertical
 function pitchToY(pitch) {
-  const rango = [40, 90];
-  const normalized = (pitch - rango[0]) / (rango[1] - rango[0]);
-  return canvas.height - normalized * canvas.height;
+  const [min, max] = [40, 90];
+  const norm = (pitch - min) / (max - min);
+  return canvas.height - norm * canvas.height;
 }
 
+// Loop de dibujo
 function update() {
   if (!tiempoInicio) return;
-  const now = performance.now() / 1000 - tiempoInicio;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  const now = performance.now()/1000 - tiempoInicio;
+  // Fat semi-trasparente
+  ctx.fillStyle = "rgba(248,247,242,0.2)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  notas.forEach(nota => {
-    if (!nota.activa && nota.start <= now) {
-      nota.activa = true;
-      nota.x = Math.random() * canvas.width;
-      nota.y = pitchToY(nota.pitch);
-      nota.size = 10 + Math.random() * 10;
-      activeNotas.push(nota);
+  // Activar notas según tiempo de inicio
+  notas.forEach(n => {
+    if (!n.activa && n.start <= now) {
+      n.activa = true;
+      n.x      = Math.random() * canvas.width;
+      n.y      = pitchToY(n.pitch);
+      n.size   = 10 + Math.random()*10;
+      activeNotas.push(n);
     }
   });
 
-  for (let i = activeNotas.length - 1; i >= 0; i--) {
-    const nota = activeNotas[i];
-    const duracion = nota.end - nota.start;
-    const progreso = (now - nota.start) / duracion;
-
-    if (progreso > 1) {
-      activeNotas.splice(i, 1);
+  // Dibujar notas activas
+  for (let i = activeNotas.length-1; i>=0; i--) {
+    const n = activeNotas[i];
+    const dur = n.end - n.start;
+    const prog = (now - n.start)/dur;
+    if (prog > 1) {
+      activeNotas.splice(i,1);
       continue;
     }
-
     ctx.beginPath();
-    ctx.fillStyle = instrumentoColor[nota.instrument] || "#FFF";
-    ctx.globalAlpha = 1 - progreso;
-    ctx.arc(nota.x, nota.y, nota.size, 0, 2 * Math.PI);
+    ctx.fillStyle = instrumentoColor[n.instrument]||"#000";
+    ctx.globalAlpha = 1 - prog;
+    ctx.arc(n.x, n.y, n.size, 0, 2*Math.PI);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
@@ -60,35 +65,57 @@ function update() {
   requestAnimationFrame(update);
 }
 
-function iniciarVisualizacion(conNotas) {
-  notas = conNotas.map(n => ({ ...n, activa: false }));
-  tiempoInicio = performance.now() / 1000;
+// Inicia la animación con los datos recibidos
+function iniciarVisualizacion(datos) {
+  notas = datos.map(n => ({ ...n, activa: false }));
+  tiempoInicio = performance.now()/1000;
   update();
 }
 
-document.getElementById("generar").onclick = async () => {
-  const url = document.getElementById("youtube-url").value.trim();
-  if (!url) {
-    alert("Introduce un link de YouTube.");
+// --- Manejo de fichero y botón ---
+
+const fileInput  = document.getElementById("file-upload");
+const btnSelect  = document.getElementById("btn-select");
+const fileNameEl = document.getElementById("file-name");
+const btnGen     = document.getElementById("generar");
+
+// Abrir dialogo de selección
+btnSelect.addEventListener("click", () => fileInput.click());
+// Mostrar nombre
+fileInput.addEventListener("change", () => {
+  fileNameEl.textContent = fileInput.files[0]?.name || "Ningún archivo seleccionado";
+});
+
+// Al hacer clic en Generar
+btnGen.addEventListener("click", async () => {
+  const f = fileInput.files[0];
+  if (!f) {
+    alert("Por favor selecciona primero un archivo de audio.");
     return;
   }
 
-  document.getElementById("generar").innerText = "Procesando...";
-  try {
-    const resp = await fetch(`${BACKEND_URL}/api/process`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ youtube_url: url })
-    });
-    const data = await resp.json();
+  btnGen.disabled = true;
+  btnGen.textContent = "Procesando...";
 
-    if (data.error) {
-      alert("Error del backend: " + data.error);
+  const form = new FormData();
+  form.append("audio", f);
+
+  try {
+    const resp = await fetch(`${BACKEND_URL}/api/upload`, {
+      method: "POST",
+      body: form
+    });
+    const json = await resp.json();
+    if (!resp.ok) {
+      alert("Error del backend: " + json.error);
     } else {
-      iniciarVisualizacion(data);
+      iniciarVisualizacion(json);
     }
-  } catch (e) {
+  } catch (err) {
     alert("Error al conectar con el backend.");
+    console.error(err);
+  } finally {
+    btnGen.disabled = false;
+    btnGen.textContent = "Generar Visualización";
   }
-  document.getElementById("generar").innerText = "Generar";
-};
+});
