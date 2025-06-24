@@ -1,49 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>The Wine House Music Visualizer</title>
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    h1 {
-      margin: 20px;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 1em;
-      margin: 10px;
-      border: none;
-      border-radius: 5px;
-    }
-    input {
-      width: 300px;
-    }
-    button {
-      background-color: #FF0055;
-      color: white;
-      cursor: pointer;
-    }
-    canvas {
-      display: block;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>The Wine House Music Visualizer</h1>
-  <input type="text" id="youtube-url" placeholder="YouTube link" />
-  <button id="generar">Generar</button>
 
-  <canvas id="canvas"></canvas>
+  <div class="input-container">
+    <label for="file">Sube un archivo de audio (.mp3, .wav):</label>
+    <input type="file" id="file" accept="audio/*">
+    <button onclick="enviarArchivo()">Generar</button>
+  </div>
 
-  <script src="script.js"></script>
+  <p id="status"></p>
+
+  <script>
+    async function enviarArchivo() {
+      const archivo = document.getElementById('file').files[0];
+      const status = document.getElementById('status');
+
+      if (!archivo) {
+        status.textContent = "Por favor, selecciona un archivo de audio.";
+        return;
+      }
+
+      status.textContent = "Procesando archivo...";
+
+      const formData = new FormData();
+      formData.append("audio", archivo);
+
+      try {
+        const respuesta = await fetch("https://visualmusic-backend-1.onrender.com/api/upload", {
+          method: "POST",
+          body: formData
+        });
+
+        const resultado = await respuesta.json();
+        if (resultado.error) {
+          status.textContent = "Error del backend: " + resultado.error;
+        } else {
+          status.textContent = "Visualización generada exitosamente.";
+          // AQUI puedes añadir la llamada a la visualización con resultado.notes o similar
+        }
+      } catch (error) {
+        status.textContent = "Error al conectar con el backend.";
+        console.error(error);
+      }
+    }
+  </script>
 </body>
 </html>
